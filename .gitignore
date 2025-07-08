@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.env
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+
+# 문서 파일 (기획서 등)
+*.pptx
+*.hwp
