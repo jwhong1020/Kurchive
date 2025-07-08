@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import requests
 import re
 
-from BE.keys import KAKAO_REST_API_KEY
+from keys import KAKAO_REST_API_KEY
 
 # 단축 URL 풀기
 
@@ -58,36 +58,70 @@ def get_address(url : str):
 
 ## 2. 카카오에서 주소 파싱
 
-### 1단계 : 
-def extract_coords(html):
-    x_match = re.search(r'"lng":([0-9.]+)', html)
-    y_match = re.search(r'"lat":([0-9.]+)', html)
-    if x_match and y_match:
-        return x_match.group(1), y_match.group(1)
-    return None, None
+### 1단계 : 장소 이름 추출
+def extract_place_name_from_html(place_id: str) -> str:
+    url = f"https://place.map.kakao.com/m/{place_id}"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    try:
+        res = requests.get(url, headers=headers)
+        soup = BeautifulSoup(res.text, "html.parser")
+        title_tag = soup.find("title")
+        if title_tag:
+            full_title = title_tag.text.strip()
+            # " | 카카오맵" 제거
+            clean_name = full_title.replace(" - 카카오맵", "").split(" | ")[0]
+            return clean_name
+        else:
+            return None
+    except Exception as e:
+        print("HTML 파싱 실패:", e)
+        return None
 
-### 2단계 : 좌표를 주소로 변환
-def get_address_from_coord(x, y, api_key):
-    url = f'https://dapi.kakao.com/v2/local/geo/coord2address.json?x={x}&y={y}'
-    headers = {'Authorization': f'KakaoAK {api_key}'}
-    res = requests.get(url, headers=headers)
-    return res.json()
 
-def get_kakao_address(url):
-    full_url = expand_short_url(url)
-    place_id = extract_kakao_place_id(full_url)
+def search_place_and_get_address(place_name: str, api_key: str) -> str:
+    url = "https://dapi.kakao.com/v2/local/search/keyword.json"
+    headers = {'Authorization': f'KakaoAK {KAKAO_REST_API_KEY}'}
+    params = {'query': place_name}
     
+    try:
+        res = requests.get(url, headers=headers, params=params)
+        res.raise_for_status()
+        result = res.json()
+
+        if result["documents"]:
+            doc = result["documents"][0]  # 가장 상위 검색 결과
+            address = doc.get("road_address_name") or doc.get("address_name")
+            print("검색된 주소:", address)
+            return address
+        else:
+            print("장소 검색 결과 없음")
+            return None
+    except Exception as e:
+        print("장소 검색 API 실패:", e)
+        return None
+
+ # 전체   
+def get_kakao_address(short_url: str) -> str:
+    full_url = expand_short_url(short_url)
+    if not full_url:
+        return "단축 URL을 확장할 수 없습니다."
+
+    place_id = extract_kakao_place_id(full_url)
+    if not place_id:
+        return "place_id를 추출할 수 없습니다."
+
     print("Full URL:", full_url)
     print("Place ID:", place_id)
-    url = f'https://place.map.kakao.com/m/{place_id}'
-    headers = {'User-Agent': 'Mozilla/5.0'}
 
-    res = requests.get(url, headers=headers)
-    soup = BeautifulSoup(res.text, 'html.parser')
+    place_name = extract_place_name_from_html(place_id)
+    
+    if not place_name:
+        return "장소명을 추출할 수 없습니다."
 
-    text = soup.get_text()
-    # 도로명 주소 같은 텍스트가 포함돼 있는지 확인
-    return text
+    print("장소명:", place_name)
+
+    address = search_place_and_get_address(place_name, KAKAO_REST_API_KEY)
+    return address if address else "주소를 찾을 수 없습니다."
 
 
 # # 네이버 예시
@@ -95,8 +129,8 @@ def get_kakao_address(url):
 # road_address = get_address(url)
 # print("도로명 : ",road_address)
 
-## 카카오
-url = "https://kko.kakao.com/9oC2Kr7EFq"
+# ## 카카오
+# url = "https://kko.kakao.com/9oC2Kr7EFq"
 
-a = get_kakao_address(url)
-print(a)
+# a = get_kakao_address(url)
+# print(a)
