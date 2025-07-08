@@ -7,7 +7,6 @@ import re
 from keys import KAKAO_REST_API_KEY
 
 # 단축 URL 풀기
-
 def expand_short_url(short_url: str) -> str:
     try:
         res = requests.get(short_url, allow_redirects=True, timeout=5)
@@ -57,7 +56,6 @@ def get_address(url : str):
         return road_address
 
 ## 2. 카카오에서 주소 파싱
-
 ### 1단계 : 장소 이름 추출
 def extract_place_name_from_html(place_id: str) -> str:
     url = f"https://place.map.kakao.com/m/{place_id}"
@@ -77,7 +75,7 @@ def extract_place_name_from_html(place_id: str) -> str:
         print("HTML 파싱 실패:", e)
         return None
 
-
+### 2단계 : 카카오맵 API로 장소명 입력 -> 도로명 주소 추출
 def search_place_and_get_address(place_name: str, api_key: str) -> str:
     url = "https://dapi.kakao.com/v2/local/search/keyword.json"
     headers = {'Authorization': f'KakaoAK {KAKAO_REST_API_KEY}'}
@@ -100,7 +98,7 @@ def search_place_and_get_address(place_name: str, api_key: str) -> str:
         print("장소 검색 API 실패:", e)
         return None
 
- # 전체   
+ ### 3단계 : 카카오 1, 2단계 전체 통합   
 def get_kakao_address(short_url: str) -> str:
     full_url = expand_short_url(short_url)
     if not full_url:
@@ -134,3 +132,4 @@ def get_kakao_address(short_url: str) -> str:
 
 # a = get_kakao_address(url)
 # print(a)
+# # 서울 송파구 위례성대로12길 8가 나옴
