@@ -80,6 +80,14 @@ Table ingredients {
   unit_type enum('liquid', 'powder', 'vegetable', 'etc')
 }
 
+// 재료별 가능한 단위
+Table ingredient_units {
+  id int [pk, increment]
+  ingredient_id int [ref: > ingredients.id]
+  unit_id int [ref: > volume_units.id]
+}
+
+
 // 부피 변환 테이블
 Table volume_units {
   id int [pk, increment]
@@ -87,7 +95,7 @@ Table volume_units {
   ml_per_unit float            // 몇 ml인지 (ex. T = 15.0)
 }
 
-
+// 레시피 입력 재
 Table recipe_ingredients {
   id int [pk, increment]
   recipe_id int [ref: > recipes.id]
