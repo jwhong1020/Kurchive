@@ -31,14 +31,15 @@ Table user_permissions {
   is_enabled boolean
 }
 
-
-Table verification_codes {
+//커손연 코드
+Table signup_code {
   id int [pk, increment]
-  code varchar(20) [unique]
-  valid boolean [default: true]
-  created_by int [ref: > users.id]
-  created_at datetime
+  code varchar(20) [not null]         // 현재 사용 중인 코드
+  is_active boolean [default: true]   // 현재 활성화된 코드인지 여부
+  changed_by int [ref: > users.id]    // 변경한 관리자
+  changed_at datetime                 // 변경 시각
 }
+
 
 Table restaurants {
   id int [pk, increment]
