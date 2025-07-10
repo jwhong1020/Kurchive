@@ -81,6 +81,8 @@ Table ingredients {
 }
 
 // 재료별 가능한 단위
+// 사용자가 재료를 고르면 → ingredient_units 통해 가능한 단위만 가져옴
+단위에 따른 ml 값은 volume_units.ml_per_unit에서 가져옴
 Table ingredient_units {
   id int [pk, increment]
   ingredient_id int [ref: > ingredients.id]
