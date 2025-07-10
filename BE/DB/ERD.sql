@@ -71,33 +71,31 @@ Table recipes {
   created_at datetime
 }
 
-// 개별 재료
+// 재료 테이블
 Table ingredients {
   id int [pk, increment]
-  name varchar(100)
-  density float // g/ml, 변환용
-  average_weight float // 개당 무게 (채소류 등)
+  name varchar(100)                // 예: 다진 마늘, 쪽파, 대파
+  density float                    // g/ml, 변환용
+  average_weight float             // 개당 무게 (optional)
   unit_type enum('liquid', 'powder', 'vegetable', 'etc')
 }
 
-// 재료별 가능한 단위
-// 사용자가 재료를 고르면 → ingredient_units 통해 가능한 단위만 가져옴
-단위에 따른 ml 값은 volume_units.ml_per_unit에서 가져옴
+// 단위 테이블
+Table volume_units {
+  id int [pk, increment]
+  name varchar(20) [unique, not null]   // 'T', 't', 'cup', '개', '단', '대' 등
+  ml_per_unit float                     // 변환용, 없는 경우 NULL 가능
+  is_general boolean [default: true]    // 일반 vs 특수 단위 구분 (optional)
+}
+
+// 재료-단위 연결 테이블 (가능한 단위)
 Table ingredient_units {
   id int [pk, increment]
   ingredient_id int [ref: > ingredients.id]
   unit_id int [ref: > volume_units.id]
 }
 
-
-// 부피 변환 테이블
-Table volume_units {
-  id int [pk, increment]
-  name varchar(20)             // 'T', 't', 'cup' 등
-  ml_per_unit float            // 몇 ml인지 (ex. T = 15.0)
-}
-
-// 레시피 입력 재
+// 레시피 입력 재료
 Table recipe_ingredients {
   id int [pk, increment]
   recipe_id int [ref: > recipes.id]
