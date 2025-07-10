@@ -62,14 +62,6 @@ Table restaurant_tags {
 
 // ------------------------------------------------------------
 //레시피
-Table recipes {
-  id int [pk, increment]
-  title varchar(100) // 레시피 이름
-  uploader_id int [ref: > users.id] // 업로더 사용자 ID
-  base_serving int // 기준 인분
-  instruction text // 조리순서
-  created_at datetime
-}
 
 // 재료 테이블
 Table ingredients {
@@ -95,15 +87,27 @@ Table ingredient_units {
   unit_id int [ref: > volume_units.id]
 }
 
-// 레시피 입력 재료
+// 레시피 테이블
+Table recipes {
+  id int [pk, increment]
+  title varchar(100) [not null]
+  uploader_id int [ref: > users.id]
+  base_serving int [not null]             // 기준 인분
+  instruction text
+  created_at datetime
+}
+
+// 레시피 입력 재료 테이블
 Table recipe_ingredients {
   id int [pk, increment]
   recipe_id int [ref: > recipes.id]
   ingredient_id int [ref: > ingredients.id]
-  quantity float
-  unit varchar(20) // 'g', 'ml', 'T', 't', 'cup', '개' 등
+  quantity float [not null]
+  unit_id int [ref: > volume_units.id]    // 단위 (T, g, 개, 등)
 }
 
+//--------------------------------------------------------
+// 나중에 좋아요 기능 추가시 활용
 Table favorites {
   id int [pk, increment]
   user_id int [ref: > users.id]
@@ -111,6 +115,7 @@ Table favorites {
   created_at datetime
 }
 
+// 나중에 코멘트 기능시 활용
 Table comments {
   id int [pk, increment]
   user_id int [ref: > users.id]
@@ -119,6 +124,7 @@ Table comments {
   created_at datetime
 }
 
+// 관리자 로그
 Table admin_logs {
   id int [pk, increment]
   admin_id int [ref: > users.id]
