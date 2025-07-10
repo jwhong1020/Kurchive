@@ -40,18 +40,19 @@ Table signup_code {
   changed_at datetime                 // 변경 시각
 }
 
-
+// 식당 정보
 Table restaurants {
-  id int [pk, increment]
-  name varchar(100)
-  address varchar(200)
+  id int [pk, increment] // 식당에 부여되는 백엔드 자체 ID
+  name varchar(50) // 식당 이름
+  address varchar(100) // 지도 링크에서 추출한 주소
   location_link text // 지도 링크
-  uploaded_by int [ref: > users.id]
-  rating float
-  description text
+  uploaded_by int [ref: > users.id] // 업로더 사용자 ID
+  rating float // 추천 정도
+  description text // 후기
   created_at datetime
 }
 
+// 식당 태그
 Table restaurant_tags {
   id int [pk, increment]
   restaurant_id int [ref: > restaurants.id]
@@ -59,15 +60,18 @@ Table restaurant_tags {
   tag_value varchar(50)
 }
 
+// ------------------------------------------------------------
+//레시피
 Table recipes {
   id int [pk, increment]
-  title varchar(100)
-  uploader_id int [ref: > users.id]
+  title varchar(100) // 레시피 이름
+  uploader_id int [ref: > users.id] // 업로더 사용자 ID
   base_serving int // 기준 인분
-  instruction text
+  instruction text // 조리순서
   created_at datetime
 }
 
+// 개별 재료
 Table ingredients {
   id int [pk, increment]
   name varchar(100)
@@ -75,6 +79,14 @@ Table ingredients {
   average_weight float // 개당 무게 (채소류 등)
   unit_type enum('liquid', 'powder', 'vegetable', 'etc')
 }
+
+// 부피 변환 테이블
+Table volume_units {
+  id int [pk, increment]
+  name varchar(20)             // 'T', 't', 'cup' 등
+  ml_per_unit float            // 몇 ml인지 (ex. T = 15.0)
+}
+
 
 Table recipe_ingredients {
   id int [pk, increment]
