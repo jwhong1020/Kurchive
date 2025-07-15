@@ -66,26 +66,30 @@ Table restaurant_tags {
 // 재료 테이블
 Table ingredients {
   id int [pk, increment]
-  name varchar(100)                // 예: 다진 마늘, 쪽파, 대파
-  density float                    // g/ml, 변환용
-  average_weight float             // 개당 무게 (optional)
+  name varchar(100)                       //-- 예: 다진 마늘, 쪽파, 대파
+  density float                           //-- g/ml (liquid, powder용), NULL 가능
+  average_weight float                    //-- 개당 무게(g), count 단위용, NULL 가능
   unit_type enum('liquid', 'powder', 'vegetable', 'etc')
+  // 주의: density와 average_weight 중 적어도 하나는 NULL이 아니어야 함
 }
 
-// 단위 테이블
+// 부피 단위 테이블
 Table volume_units {
   id int [pk, increment]
-  name varchar(20) [unique, not null]   // 'T', 't', 'cup', '개', '단', '대' 등
-  ml_per_unit float                     // 변환용, 없는 경우 NULL 가능
-  is_general boolean [default: true]    // 일반 vs 특수 단위 구분 (optional)
+  name varchar(20) [unique, not null]   // "tsp", "tbsp", "cup", "ml"
+  ml_per_unit float [not null]          // ex: tsp = 5.0
 }
 
 // 재료-단위 연결 테이블 (가능한 단위)
 Table ingredient_units {
   id int [pk, increment]
-  ingredient_id int [ref: > ingredients.id]
-  unit_id int [ref: > volume_units.id]
+  ingredient_id int [ref: > ingredients.id]    // 어떤 재료인지
+  unit_name varchar(20) [not null]             // "개", "단", "g", "컵" 등
+  unit_type enum('count', 'mass', 'volume', 'misc')  // 단위 분류
+  is_default boolean [default: false]          // 기본 표기 단위인지
 }
+//만약 한 재료에 여러 단위가 가능하면 같은 ingredient_id에 해당하는 unit이 다른 객체가 여러 개 있음
+
 
 // 레시피 테이블
 Table recipes {
@@ -103,7 +107,7 @@ Table recipe_ingredients {
   recipe_id int [ref: > recipes.id]
   ingredient_id int [ref: > ingredients.id]
   quantity float [not null]
-  unit_id int [ref: > volume_units.id]    // 단위 (T, g, 개, 등)
+  unit_name varchar(20) [not null]  // ingredient_units의 unit_name 중 하나
 }
 
 //--------------------------------------------------------
