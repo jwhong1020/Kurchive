@@ -74,6 +74,7 @@ Table ingredients {
   average_weight float                    //-- 개당 무게(g), count 단위용, NULL 가능
   unit_type enum('liquid', 'powder', 'vegetable', 'etc')
   // 주의: density와 average_weight 중 적어도 하나는 NULL이 아니어야 함
+  category_id int [ref: > ingredient_categories.id, null]
 }
 
 // 부피 단위 테이블
@@ -112,6 +113,15 @@ Table recipe_ingredients {
   quantity float [not null]
   unit_name varchar(20) [not null]  // ingredient_units의 unit_name 중 하나
 }
+
+// 재료 카테고리 테이블 추가
+Table ingredient_categories {
+  id int [pk, increment]
+  name varchar(50) [not null]
+  is_custom boolean [default: false]  // 사용자가 만든 경우 true
+  created_by int [ref: > users.id, null] // 사용자가 만든 경우에만 저장
+}
+
 
 //--------------------------------------------------------
 // 나중에 좋아요 기능 추가시 활용
