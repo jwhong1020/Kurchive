@@ -48,11 +48,20 @@ Table restaurants {
   location_link text // 지도 링크
   latitude decimal(10, 7) // 위도 (예: 37.1234567)
   longitude decimal(10, 7) // 경도 (예: 127.1234567)
+  location_tag_id int [ref: > location_tags.id]  // 지역 태그
   uploaded_by int [ref: > users.id] // 업로더 사용자 ID
   rating float // 추천 정도
   summary varchar(150) // 한줄평
   description text // 후기, 긴 거
   created_at datetime
+}
+
+// 지역 태그
+Table location_tags {
+  id int [pk, increment]
+  name varchar(50) [not null, unique]  // 예: "홍대/합정/마포"
+  city varchar(20)                     // 대분류 예: "서울", "경기"
+  sort_order int                      // UI 정렬용 (선택)
 }
 
 
