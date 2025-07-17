@@ -46,11 +46,14 @@ Table restaurants {
   name varchar(50) // 식당 이름
   address varchar(100) // 지도 링크에서 추출한 주소
   location_link text // 지도 링크
+  latitude decimal(10, 7) // 위도 (예: 37.1234567)
+  longitude decimal(10, 7) // 경도 (예: 127.1234567)
   uploaded_by int [ref: > users.id] // 업로더 사용자 ID
   rating float // 추천 정도
   description text // 후기
   created_at datetime
 }
+
 
 // 식당 태그
 Table restaurant_tags {
