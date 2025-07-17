@@ -50,7 +50,8 @@ Table restaurants {
   longitude decimal(10, 7) // 경도 (예: 127.1234567)
   uploaded_by int [ref: > users.id] // 업로더 사용자 ID
   rating float // 추천 정도
-  description text // 후기
+  summary varchar(150) // 한줄평
+  description text // 후기, 긴 거
   created_at datetime
 }
 
