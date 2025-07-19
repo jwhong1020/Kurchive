@@ -113,16 +113,17 @@ Table recipes {
   title varchar(100) [not null]
   uploader_id int [ref: > users.id]
   base_serving int [not null]             // 기준 인분
-  thumbnail_url  text
+  thumbnail_url  text // 대표 이미지. 선택
   created_at datetime
 }
 
+// 레시피 내용 테이블
 Table recipe_steps {
   id             int      [pk, increment]
   recipe_id      int      [ref: > recipes.id]
   step_order     int      // 순서 번호 (1, 2, 3, ...)
   description    text     // 해당 단계 설명
-  image_url      text     // 선택적으로 업로드 가능
+  image_url      text     // 선택적으로 업로드
 }
 
 // 레시피 입력 재료 테이블
