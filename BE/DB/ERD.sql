@@ -53,6 +53,8 @@ Table restaurants {
   rating float // 추천 정도
   summary varchar(150) // 한줄평
   description text // 후기, 긴 거
+  price_min int // 최소 가격대
+  price_max int // 최대 가격대
   created_at datetime
 }
 
@@ -111,8 +113,16 @@ Table recipes {
   title varchar(100) [not null]
   uploader_id int [ref: > users.id]
   base_serving int [not null]             // 기준 인분
-  instruction text
+  thumbnail_url  text
   created_at datetime
+}
+
+Table recipe_steps {
+  id             int      [pk, increment]
+  recipe_id      int      [ref: > recipes.id]
+  step_order     int      // 순서 번호 (1, 2, 3, ...)
+  description    text     // 해당 단계 설명
+  image_url      text     // 선택적으로 업로드 가능
 }
 
 // 레시피 입력 재료 테이블
