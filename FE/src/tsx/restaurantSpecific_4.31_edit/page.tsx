@@ -5,6 +5,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import styles from "./page.module.css";
 import client from "../../api/client";
 import { geocodeAddress } from "../../api/location";
+import DuplicateRestaurantModal from "../../components/duplicateRestaurant/DuplicateRestaurantModal";
+import type { DuplicateConflict } from "../../types/restaurantDuplicate";
+import { parseDuplicateConflict } from "../../utils/restaurantDuplicate";
 //여기서 지오코딩 쓰니가 여기에 import
 
 type TagGroup = "region" | "food" | "price";
@@ -141,6 +144,7 @@ export default function RestaurantEditPage() {
   // -------------------------
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [dupConflict, setDupConflict] = useState<DuplicateConflict | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
   // -------------------------
@@ -570,12 +574,14 @@ const handleValidateAddress = async () => {
     if (Number.isNaN(priceMin) || Number.isNaN(priceMax)) return alert("가격은 숫자만 입력해주세요.");
     if ((priceMin as number) > (priceMax as number)) return alert("최소 가격이 최대 가격보다 클 수 없습니다.");
     if (selectedFoodTags.length === 0) return alert("음식 태그를 최소 1개 선택해주세요.");
+    if (!detailReview.trim()) return alert("자세한 후기를 입력해주세요.");
 
     try {
       setSubmitting(true);
+      setDupConflict(null);
 
       // 아카이브 description 조합 규칙 그대로
-      const description = (detailReview ?? "").trim() || " ";
+      const description = (detailReview ?? "").trim();
 
       const payload = {
         name: name.trim(),
@@ -628,20 +634,21 @@ const handleValidateAddress = async () => {
 setTimeout(() => {
   nav(`/restaurant/${id}`, { replace: true });
 }, 800);
-    } catch (e: any) {
-      // UI가 없어서 DevTools로 확인 가능하게 에러를 최대한 자세히 출력
-      console.error("[RestaurantEdit] request failed", {
-        message: e?.message,
-        status: e?.response?.status,
-        statusText: e?.response?.statusText,
-        url: e?.config?.url,
-        method: e?.config?.method,
-        response: e?.response?.data,
-      });
+    } catch (e: unknown) {
+      console.error("[RestaurantEdit] request failed", e);
+      const dup = parseDuplicateConflict(e);
+      if (dup) {
+        setDupConflict(dup);
+        return;
+      }
+      const err = e as {
+        response?: { data?: { message?: string; detail?: string } };
+        message?: string;
+      };
       const msg =
-        e?.response?.data?.message ||
-        e?.response?.data?.detail ||
-        e?.message ||
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message ||
         "수정 중 오류";
       alert(msg);
     } finally {
@@ -1133,6 +1140,10 @@ setTimeout(() => {
     {toast}
   </div>
 )}
+      <DuplicateRestaurantModal
+        conflict={dupConflict}
+        onClose={() => setDupConflict(null)}
+      />
     </div>
   );
 }
