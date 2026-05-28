@@ -543,7 +543,7 @@ const handleValidateAddress = async () => {
     
     if (!res.ok) {
       setIsAddressValid(false);
-      setAddressMessage("주소 적용에 실패했습니다. 정확한 주소를 입력해주세요.");
+      setAddressMessage(res.detail ?? "도로명 주소를 입력해주세요.");
       return;
     }
 
@@ -553,7 +553,7 @@ const handleValidateAddress = async () => {
     setAddressMessage("주소 적용 완료!");
   } catch (e) {
     setIsAddressValid(false);
-    setAddressMessage("주소 적용 중 오류가 발생했습니다.");
+    setAddressMessage("도로명 주소 검증 중 오류가 발생했습니다.");
   } finally {
     setIsValidatingAddress(false);
   }
@@ -569,12 +569,11 @@ const handleValidateAddress = async () => {
     if (!isValidMapLink(mapLink.trim())) {return alert("지원되는 지도 링크가 아닙니다.");}
     if (!address.trim()) return alert("주소를 입력해주세요.");
     if (isAddressValid !== true) return alert("주소 적용을 완료해주세요.");
-    if (!selectedLv2) return alert("소지역(구/시/군)을 선택해주세요.");
-    if (priceMin === "" || priceMax === "") return alert("가격 범위(최소/최대)를 입력해주세요.");
+    if (!shortReview.trim()) return alert("한줄평을 입력해주세요.");
+    if (!selectedLv2 || priceMin === "" || priceMax === "" || selectedFoodTags.length === 0) return alert("지역/태그/가격대를 입력해주세요.");
     if (Number.isNaN(priceMin) || Number.isNaN(priceMax)) return alert("가격은 숫자만 입력해주세요.");
     if ((priceMin as number) > (priceMax as number)) return alert("최소 가격이 최대 가격보다 클 수 없습니다.");
-    if (selectedFoodTags.length === 0) return alert("음식 태그를 최소 1개 선택해주세요.");
-    if (!detailReview.trim()) return alert("자세한 후기를 입력해주세요.");
+    if (!detailReview.trim()) return alert("후기를 입력해주세요.");
 
     try {
       setSubmitting(true);
@@ -591,7 +590,7 @@ const handleValidateAddress = async () => {
         longitude: longitude,
         location_tag_id: selectedLv2,
         rating: ratingStep,
-        summary: (shortReview ?? "").trim() || " ",
+        summary: (shortReview ?? "").trim(),
         description,
         price_min: priceMin as number,
         price_max: priceMax as number,

@@ -273,7 +273,7 @@ export default function RestaurantFormPage() {
             // 주소를 입력한 경우, /locations/geocode로 위도/경도 검증
             const res = await geocodeAddress(address.trim()); //awaiting so we actually check res is filled
             if (!res.ok) {
-                setAddressMessage("주소 검증에 실패했습니다. 정확한 주소를 입력해주세요.");
+                setAddressMessage(res.detail ?? "도로명 주소를 입력해주세요.");
                 return;
             }
             setLatitude(res.lat ?? null);
@@ -284,7 +284,7 @@ export default function RestaurantFormPage() {
         }
         catch (e) {
             console.error(e);
-            setAddressMessage("주소 검증 중 오류가 발생했습니다.");
+            setAddressMessage("도로명 주소 검증 중 오류가 발생했습니다.");
         }
         finally {
             setIsFetchingAddress(false);
@@ -303,7 +303,7 @@ export default function RestaurantFormPage() {
                 longitude: longitude,
                 location_tag_id: selectedLv2,
                 rating: rating,
-                summary: (shortReview ?? "").trim() || " ",
+                summary: (shortReview ?? "").trim(),
                 description,
                 price_min: priceMin as number,
                 price_max: priceMax as number,
@@ -365,6 +365,8 @@ export default function RestaurantFormPage() {
             return alert("주소를 입력해주세요.");
         if (!isAddressLocked)
             return alert("주소 수정 중입니다. 적용 버튼을 눌러주세요.");
+        if (!shortReview.trim())
+            return alert("한줄평을 입력해주세요.");
         if (shortReview.length > 100) {
             return alert("한줄평은 100자 이하로 입력해주세요.");
         }
@@ -380,10 +382,8 @@ export default function RestaurantFormPage() {
             return alert("가격은 숫자만 입력해주세요.");
         if ((priceMin as number) > (priceMax as number))
             return alert("최소 가격이 최대 가격보다 클 수 없습니다.");
-        if (selectedFoodTagIds.length === 0)
-            return alert("음식 태그를 최소 1개 선택해주세요.");
         if (!detailReview.trim())
-            return alert("자세한 후기를 입력해주세요.");
+            return alert("후기를 입력해주세요.");
         await submitRestaurant(false);
     };
     // -------------------------
@@ -658,10 +658,10 @@ export default function RestaurantFormPage() {
         </main>
       </div>
       <DuplicateRestaurantModal
-        conflict={dupConflict}
-        onClose={() => setDupConflict(null)}
-        onForceSubmit={handleForceCreateDuplicate}
-        forceSubmitting={submitting}
+        conflict={dupConflict} //없으면 null
+        onClose={() => setDupConflict(null)} //창 닫기
+        onForceSubmit={handleForceCreateDuplicate} //그래도 등록 버튼 클릭 시 실행
+        forceSubmitting={submitting} //그래도 등록 중인지 여부
       />
     </div>);
 }
