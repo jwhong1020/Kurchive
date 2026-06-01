@@ -5,8 +5,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 import anyio
+import requests
 
-from AddressLatLong import extract_location_from_link
+from BE.AddressLatLong import KAKAO_HEADERS, extract_location_from_link, safe_float
 from BE.src.models.restaurants import Restaurant
 from BE.src.utils.duplicate_det import find_duplicate_candidates
 
@@ -33,6 +34,44 @@ def normalize_address(v: Optional[str]) -> Optional[str]:
     if not v:
         return None
     return v
+
+
+def validate_road_address_string(address: str) -> Optional[Dict[str, Any]]:
+    """도로명 주소만 검증하고 좌표를 반환합니다."""
+    if not address or not address.strip() or not KAKAO_HEADERS:
+        return None
+
+    response = requests.get(
+        "https://dapi.kakao.com/v2/local/search/address.json",
+        headers=KAKAO_HEADERS,
+        params={
+            "query": address.strip(),
+            "analyze_type": "exact",
+            "size": 10,
+        },
+        timeout=5,
+    )
+    response.raise_for_status()
+
+    for doc in response.json().get("documents", []):
+        road_address = doc.get("road_address")
+        if doc.get("address_type") != "ROAD_ADDR" or not road_address:
+            continue
+
+        lat = safe_float(road_address.get("y") or doc.get("y"))
+        lng = safe_float(road_address.get("x") or doc.get("x"))
+        if lat is None or lng is None:
+            continue
+
+        return {
+            "lat": lat,
+            "lng": lng,
+            "address": road_address.get("address_name"),
+            "road_address": road_address.get("address_name"),
+            "source": "kakao_address_road",
+        }
+
+    return None
 
 
 async def find_exact_duplicates(
