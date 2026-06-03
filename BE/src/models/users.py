@@ -15,7 +15,7 @@ class User(Base):
     # 임원진(레시피 접근 가능) 여부
     role = Column(String(500), default="member", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+    deleted_at = Column(DateTime(timezone=True), default=None, nullable=True)
     # 관계 설정
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")

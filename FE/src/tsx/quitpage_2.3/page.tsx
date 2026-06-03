@@ -1,11 +1,12 @@
 import style from "./page.module.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { BookOpen, MapPinned, Utensils } from "lucide-react";
-import { getMyPage, type MyPageUser } from "../../api/mypage";
+import { getMyPage, type MyPageUser, withdrawal } from "../../api/mypage";
 import { useKurchiveI18n } from "../../i18n/LocaleContext";
 
 export default function Home() {
+  const navigate = useNavigate();
   const { messages } = useKurchiveI18n();
   const myPage = messages.myPage;
   const [user, setUser] = useState<MyPageUser | null>(null);
@@ -17,6 +18,19 @@ export default function Home() {
         console.error(err);
       });
   }, []);
+
+  const handleWithdrawal = async () => {
+    try {
+      await withdrawal();
+      localStorage.removeItem("access_token");
+      alert("회원 탈퇴가 완료되었습니다.");
+      navigate("/login", { replace: true });
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.detail ?? "회원 탈퇴 처리에 실패했습니다.";
+      alert(message);
+    }
+  };
 
   return (
     <div className={style.mainPage}>
@@ -78,9 +92,9 @@ export default function Home() {
           <Link className={style.no} to="/mypage">
             {myPage.delete.no}
           </Link>
-          <Link className={style.yes} to="/login">
+          <button className={style.yes} type="button" onClick={handleWithdrawal}>
             {myPage.delete.yes}
-          </Link>
+          </button>
         </div>
       </footer>
     </div>

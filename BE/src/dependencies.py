@@ -98,6 +98,9 @@ async def get_current_user_from_token(
     if user is None:
         raise credentials_exception
 
+    if user.deleted_at is not None:
+        raise HTTPException(status_code=401, detail="Deleted account")
+
     return user
 
 # guest 판별

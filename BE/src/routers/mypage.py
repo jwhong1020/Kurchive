@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from passlib.context import CryptContext
 
 from BE.src.dependencies import get_current_user_from_token
@@ -121,9 +121,21 @@ async def delete_user_account(
     current_user: User = Depends(get_current_user_from_token)
 ):
     user_to_delete = await db.get(User, current_user.id)
+
     if user_to_delete:
-        await db.delete(user_to_delete)
+
+        user_to_delete.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None) # 탈퇴 시간 기록
+        user_to_delete.password = ""                  # 비밀번호 초기화
+        user_to_delete.name = "탈퇴 회원"
+
+        # unique 제약조건 충돌을 방지하기 위한 유저 ID(PK)
+        user_to_delete.userid = f"{user_to_delete.userid}_deleted_{user_to_delete.id}"
+        user_to_delete.nickname = f"탈퇴한 유저_{user_to_delete.id}"
+
+        db.add(user_to_delete)
         await db.commit()
+        await db.refresh(user_to_delete)
+
     return {"message": "회원 탈퇴가 성공적으로 처리되었습니다."}
 
 # 내 활동 기록
