@@ -1,13 +1,29 @@
 import style from "./page.module.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { withdrawal } from "../../api/mypage";
 
 export default function Home() {
+  const navigate = useNavigate();
+
+  const handleWithdrawal = async () => {
+    try {
+      await withdrawal();
+      localStorage.removeItem("access_token");
+      alert("회원 탈퇴가 완료되었습니다.");
+      navigate("/login", { replace: true });
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.detail ?? "회원 탈퇴 처리에 실패했습니다.";
+      alert(message);
+    }
+  };
+
   return (
     <div className={style.mainPage}>
       <header className={style.title}>
         <h2 style={{ color: "#8B0029" }}>커카이브</h2>
         <h3 style={{ color: "#8B0029", marginLeft: "5px", marginTop: "30px" }}>
-          우리의 미식지도
+          우리만의 미식지도
         </h3>
       </header>
       <div className={style.stackedContainer}>
@@ -62,8 +78,12 @@ export default function Home() {
           정말 탈퇴하시겠습니까?
         </div>
         <div className={style.buttonBox}>
-          <Link className={style.no} to="/mypage">아니요</Link>
-          <Link className={style.yes} to="/login">예</Link>
+          <Link className={style.no} to="/mypage">
+            아니요
+          </Link>
+          <button className={style.yes} type="button" onClick={handleWithdrawal}>
+            예
+          </button>
         </div>
       </footer>
     </div>
