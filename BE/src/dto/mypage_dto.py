@@ -39,6 +39,7 @@ class MyRecipeDTO(BaseModel):
     id: int
     title: str
     base_serving: int
+    thumbnail_url: Optional[str]
     created_at: Optional[datetime]
 
 

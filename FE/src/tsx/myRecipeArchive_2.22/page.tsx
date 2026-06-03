@@ -9,9 +9,33 @@ import ArchiveSearchBar from "../../components/common/ArchiveSearchBar";
 import ArchiveStatusMessage from "../../components/common/ArchiveStatusMessage";
 import client from "../../api/client";
 import { getMyPage, MyPageUser } from "../../api/mypage";
+import { getRecipeDetail } from "../../api/recipe";
 import { useKurchiveI18n } from "../../i18n/LocaleContext";
 import RecipeFavoriteCard, { FavoriteRecipeItem } from "./components/RecipeFavoriteCard";
 import styles from "./page.module.css";
+
+const hydrateRecipeThumbnails = async (
+  recipes: FavoriteRecipeItem[],
+): Promise<FavoriteRecipeItem[]> => {
+  return Promise.all(
+    recipes.map(async (recipe) => {
+      if (recipe.thumbnail_url) return recipe;
+
+      try {
+        // thumbnail fallback
+        const detail = await getRecipeDetail(recipe.id);
+
+        return {
+          ...recipe,
+          thumbnail_url: detail?.thumbnail_url || recipe.thumbnail_url,
+        };
+      } catch (error) {
+        console.error("Failed to load favorite recipe thumbnail:", error);
+        return recipe;
+      }
+    }),
+  );
+};
 
 export default function RecipeArchivePage() {
   const navigate = useNavigate();
@@ -34,7 +58,9 @@ export default function RecipeArchivePage() {
         ]);
 
         setUser(userData);
-        setRecipes(recipesRes.data);
+        const recipesData = Array.isArray(recipesRes.data) ? recipesRes.data : [];
+        const hydratedRecipes = await hydrateRecipeThumbnails(recipesData);
+        setRecipes(hydratedRecipes);
       } catch (error) {
         console.error("Failed to load favorite recipes:", error);
       } finally {

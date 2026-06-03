@@ -197,7 +197,6 @@
     "noUploadedRecipes": "아직 업로드한 레시피가 없습니다.",
     "noSavedRestaurants": "아직 저장한 식당이 없습니다.",
     "noSavedRecipes": "아직 저장한 레시피가 없습니다.",
-    "recipeImageLabel": "레시피",
     "serves": "기본 {count}인분",
     "rating": "별점",
     "removeItem": "{title} 삭제"

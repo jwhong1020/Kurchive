@@ -11,6 +11,30 @@ import ArchiveItemCard from "../../components/common/ArchiveItemCard";
 import ArchiveSearchBar from "../../components/common/ArchiveSearchBar";
 import ArchiveStatusMessage from "../../components/common/ArchiveStatusMessage";
 import { useKurchiveI18n } from "../../i18n/LocaleContext";
+import { getRecipeDetail } from "../../api/recipe";
+
+const hydrateRecipeThumbnails = async (
+  recipes: MyRecipeLog[],
+): Promise<MyRecipeLog[]> => {
+  return Promise.all(
+    recipes.map(async (recipe) => {
+      if (recipe.thumbnail_url) return recipe;
+
+      try {
+        // thumbnail fallback
+        const detail = await getRecipeDetail(recipe.id);
+
+        return {
+          ...recipe,
+          thumbnail_url: detail?.thumbnail_url || recipe.thumbnail_url,
+        };
+      } catch (error) {
+        console.error("Failed to load recipe thumbnail:", error);
+        return recipe;
+      }
+    }),
+  );
+};
 
 const RecipeCard = ({ recipe }: { recipe: MyRecipeLog }) => {
   const navigate = useNavigate();
@@ -26,7 +50,8 @@ const RecipeCard = ({ recipe }: { recipe: MyRecipeLog }) => {
       description={archive.serves.replace("{count}", String(recipe.base_serving))}
       metaLabel={archive.uploadedByMe}
       dateText={dateText}
-      imageLabel={archive.noPhoto}
+      imageLabel={messages.common.noPhoto}
+      thumbnailUrl={recipe.thumbnail_url}
       onClick={() => navigate(`/recipe/${recipe.id}`)}
     />
   );
@@ -53,7 +78,8 @@ export default function RecipeArchivePage() {
         ]);
 
         setUser(userData);
-        setRecipes(recipesData);
+        const hydratedRecipes = await hydrateRecipeThumbnails(recipesData);
+        setRecipes(hydratedRecipes);
       } catch (error) {
         console.error("Failed to load data:", error);
       } finally {

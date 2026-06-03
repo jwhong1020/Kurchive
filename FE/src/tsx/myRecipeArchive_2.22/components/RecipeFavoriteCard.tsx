@@ -6,7 +6,7 @@ export interface FavoriteRecipeItem {
   id: number;
   title: string;
   base_serving: number;
-  thumbnail_url?: string;
+  thumbnail_url?: string | null;
   created_at?: string;
 }
 
@@ -29,7 +29,7 @@ export default function RecipeFavoriteCard({ recipe, onDelete }: Props) {
       description={archive.serves.replace("{count}", String(recipe.base_serving))}
       metaLabel={archive.savedRecipe}
       dateText={dateText}
-      imageLabel={archive.noPhoto}
+      imageLabel={messages.common.noPhoto}
       thumbnailUrl={recipe.thumbnail_url}
       onClick={() => navigate(`/recipe/${recipe.id}`)}
       onDelete={() => onDelete(recipe.id)}

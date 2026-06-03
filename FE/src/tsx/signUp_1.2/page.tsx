@@ -184,9 +184,8 @@ export default function SignupPage() {
       {/* 카드 */}
       <main className={styles.main}>
         <div className={styles.logoGroup}>
-          {/* 여기에 로고 이미지 넣고 싶으면 img 태그 추가 */}
-          <h1 className={styles.title}>커카이브</h1>
-          <p className={styles.subTitle}>회원가입</p>
+          <h1 className={styles.title}>{messages.brand.name}</h1>
+          <p className={styles.subTitle}>{signup.title}</p>
         </div>
 
         <form className={styles.form} onSubmit={onSubmit}>

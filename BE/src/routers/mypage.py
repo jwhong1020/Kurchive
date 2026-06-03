@@ -171,6 +171,7 @@ async def get_my_uploaded_recipes(
             Recipe.id,
             Recipe.title,
             Recipe.base_serving,
+            Recipe.thumbnail_url,
             Recipe.created_at
         )
         .where(Recipe.uploader_id == current_user.id)
@@ -184,6 +185,7 @@ async def get_my_uploaded_recipes(
             id=r.id,
             title=r.title,
             base_serving=r.base_serving,
+            thumbnail_url=r.thumbnail_url,
             created_at=r.created_at
         )
         for r in result

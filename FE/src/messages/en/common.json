@@ -197,7 +197,6 @@
     "noUploadedRecipes": "You have not uploaded any recipes yet.",
     "noSavedRestaurants": "You have not saved any restaurants yet.",
     "noSavedRecipes": "You have not saved any recipes yet.",
-    "recipeImageLabel": "Recipe",
     "serves": "Serves {count}",
     "rating": "Rating",
     "removeItem": "Remove {title}"
