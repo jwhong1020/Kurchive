@@ -4,10 +4,15 @@ import { useNavigate } from "react-router-dom";
 import styles from "./page.module.css";
 import client from "../../api/client";
 import { extractLocationFromLink, geocodeAddress } from "../../api/location";
+
 import {
   uploadRestaurantThumbnail,
   uploadRestaurantImages,
 } from "../../api/restaurant";
+        
+import DuplicateRestaurantModal from "../../components/duplicateRestaurant/DuplicateRestaurantModal";
+import type { DuplicateConflict } from "../../types/restaurantDuplicate";
+import { parseDuplicateConflict } from "../../utils/restaurantDuplicate";
 
 // 여기서는 extlocfromlink 사용
 type TagGroup = "region" | "food" | "price";
@@ -103,6 +108,7 @@ export default function RestaurantFormPage() {
     // -------------------------
     const [submitting, setSubmitting] = useState(false);
     const [loadingMeta, setLoadingMeta] = useState(false);
+    const [dupConflict, setDupConflict] = useState<DuplicateConflict | null>(null);
     // =========================================================
     // (1) 대지역 로드
     // =========================================================
@@ -274,7 +280,7 @@ export default function RestaurantFormPage() {
             // 주소를 입력한 경우, /locations/geocode로 위도/경도 검증
             const res = await geocodeAddress(address.trim()); //awaiting so we actually check res is filled
             if (!res.ok) {
-                setAddressMessage("주소 검증에 실패했습니다. 정확한 주소를 입력해주세요.");
+                setAddressMessage(res.detail ?? "도로명 주소를 입력해주세요.");
                 return;
             }
             setLatitude(res.lat ?? null);
@@ -285,16 +291,79 @@ export default function RestaurantFormPage() {
         }
         catch (e) {
             console.error(e);
-            setAddressMessage("주소 검증 중 오류가 발생했습니다.");
+            setAddressMessage("도로명 주소 검증 중 오류가 발생했습니다.");
         }
         finally {
             setIsFetchingAddress(false);
         }
     };
+    const submitRestaurant = async (force = false) => {
+        setSubmitting(true);
+        setDupConflict(null);
+        try {
+            const description = `${detailReview ?? ""}`.trim();
+            const payload = {
+                name: name.trim(),
+                location_link: mapLink.trim(),
+                address: address.trim(),
+                latitude: latitude,
+                longitude: longitude,
+                location_tag_id: selectedLv2,
+                rating: rating,
+                summary: (shortReview ?? "").trim(),
+                description,
+                price_min: priceMin as number,
+                price_max: priceMax as number,
+                tag_ids: selectedFoodTagIds,
+                recommended_menus: menus,
+                force,
+            };
+            const created = await client.post("/restaurants", payload).then((r) => r.data);
+            if (!created?.ok) {
+                alert(created?.message ?? "식당 등록 실패");
+                return;
+            }
+            const restaurantId: number | undefined = created?.data?.id;
+            if (!restaurantId) {
+                alert("등록은 됐는데 restaurant id를 받지 못했습니다. 응답 확인 필요.");
+                return;
+            }
+
+            // 이미지 업로드
+            // 썸네일 업로드
+            if (mainImageFile) {
+                await uploadRestaurantThumbnail(restaurantId, mainImageFile);
+            }
+
+            // 상세 이미지 업로드
+            if (detailImageFile) {
+                await uploadRestaurantImages(restaurantId, [detailImageFile]);
+
+            }
+            alert("식당 등록 완료!");
+            navigate("/restaurant", { replace: true });
+        }
+        catch (e: unknown) {
+            console.error(e);
+            const dup = parseDuplicateConflict(e);
+            if (dup) {
+                setDupConflict(dup);
+                return;
+            }
+            const err = e as { response?: { data?: { message?: string; detail?: string } }; message?: string };
+            const msg = err?.response?.data?.message ||
+                err?.response?.data?.detail ||
+                err?.message ||
+                "등록 중 오류";
+            alert(msg);
+        }
+        finally {
+            setSubmitting(false);
+        }
+    };
     const handleSubmit = async () => {
         if (submitting)
             return;
-        console.log("rating state:", rating);
         if (!name.trim())
             return alert("식당 이름을 입력해주세요.");
         if (!mapLink.trim())
@@ -303,6 +372,8 @@ export default function RestaurantFormPage() {
             return alert("주소를 입력해주세요.");
         if (!isAddressLocked)
             return alert("주소 수정 중입니다. 적용 버튼을 눌러주세요.");
+        if (!shortReview.trim())
+            return alert("한줄평을 입력해주세요.");
         if (shortReview.length > 100) {
             return alert("한줄평은 100자 이하로 입력해주세요.");
         }
@@ -318,64 +389,20 @@ export default function RestaurantFormPage() {
             return alert("가격은 숫자만 입력해주세요.");
         if ((priceMin as number) > (priceMax as number))
             return alert("최소 가격이 최대 가격보다 클 수 없습니다.");
-        if (selectedFoodTagIds.length === 0)
-            return alert("음식 태그를 최소 1개 선택해주세요.");
-        try {
-            setSubmitting(true);
-            const description = `${detailReview ?? ""}`.trim() || " ";
-            const payload = {
-                name: name.trim(),
-                location_link: mapLink.trim(),
-                address: address.trim(),
-                latitude: latitude,
-                longitude: longitude,
-                location_tag_id: selectedLv2,
-                rating: rating,
-                summary: (shortReview ?? "").trim() || " ",
-                description,
-                price_min: priceMin as number,
-                price_max: priceMax as number,
-                tag_ids: selectedFoodTagIds,
-                recommended_menus: menus
-            };
-            const created = await client.post("/restaurants", payload).then((r) => r.data);
-            if (!created?.ok) {
-                alert(created?.message ?? "식당 등록 실패");
-                return;
-            }
-            const restaurantId: number | undefined = created?.data?.id;
-            if (!restaurantId) {
-                alert("등록은 됐는데 restaurant id를 받지 못했습니다. 응답 확인 필요.");
-                return;
-            }
-            // 이미지 업로드
-            // 썸네일 업로드
-            if (mainImageFile) {
-                await uploadRestaurantThumbnail(restaurantId, mainImageFile);
-            }
-
-            // 상세 이미지 업로드
-            if (detailImageFile) {
-                await uploadRestaurantImages(restaurantId, [detailImageFile]);
-            }
-            alert("식당 등록 완료!");
-            navigate("/restaurant", { replace: true });
-        }
-        catch (e: any) {
-            console.error(e);
-            const msg = e?.response?.data?.message ||
-                e?.response?.data?.detail ||
-                e?.message ||
-                "등록 중 오류";
-            alert(msg);
-        }
-        finally {
-            setSubmitting(false);
-        }
+        if (!detailReview.trim())
+            return alert("후기를 입력해주세요.");
+        await submitRestaurant(false);
     };
     // -------------------------
     // UI Render
     // -------------------------
+    let handleForceCreateDuplicate: (() => void) | undefined;
+    if (dupConflict?.kind === "nearby") {
+        handleForceCreateDuplicate = () => submitRestaurant(true);
+    } else {
+        handleForceCreateDuplicate = undefined;
+    }
+
     return (<div className={styles.page}>
       <div className={styles.container}>
         <header className={styles.header}>
@@ -637,5 +664,11 @@ export default function RestaurantFormPage() {
           </section>
         </main>
       </div>
+      <DuplicateRestaurantModal
+        conflict={dupConflict} //없으면 null
+        onClose={() => setDupConflict(null)} //창 닫기
+        onForceSubmit={handleForceCreateDuplicate} //그래도 등록 버튼 클릭 시 실행
+        forceSubmitting={submitting} //그래도 등록 중인지 여부
+      />
     </div>);
 }

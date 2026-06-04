@@ -160,7 +160,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_async_db)):
         result = await db.execute(select(User).filter(User.userid == data.ID))
         user = result.scalar_one_or_none()
         if not user or not pwd_context.verify(data.PW, user.password):
-            raise HTTPException(status_code=400, detail="아이디 또는 비밀번호가 잘못되었습니다.")
+            raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 잘못되었습니다.")
 
         # 탈퇴 처리된 계정인지 확인
         if user.deleted_at is not None:
@@ -180,8 +180,9 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_async_db)):
             "expires_in": JWT_EXPIRE_MINUTES * 60,
         }
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
+
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
