@@ -8,7 +8,8 @@ from pydantic import BaseModel, validator
 from typing import Optional, Dict, Any
 import anyio
 
-from BE.AddressLatLong import extract_location_from_link, kakao_keyword_search, validate_address_string
+from BE.AddressLatLong import extract_location_from_link
+from BE.src.routers.utils import validate_road_address_string
 
 router = APIRouter(prefix="/api", tags=["Location"])
 
@@ -138,23 +139,21 @@ async def geocode_address(request: GeocodeRequest):
     """
     try:
         loc = await anyio.to_thread.run_sync(
-            kakao_keyword_search,
+            validate_road_address_string,
             request.address,
-            None,  # lat
-            None   # lng
         )
         
         if not loc:
             return GeocodeResponse(
                 ok=False,
-                detail="Failed to geocode address"
+                detail="도로명 주소를 입력해주세요."
             )
         
         return GeocodeResponse(
             ok=True,
             lat=loc.get("lat"),
             lng=loc.get("lng"),
-            address=loc.get("address") or request.address
+            address=loc.get("road_address") or loc.get("address") or request.address
         )
         
     except Exception as e:
@@ -169,7 +168,7 @@ async def validate_address(request: ValidateAddressRequest):
     """입력한 주소가 유효한지 검증하고, 유효한 경우 정규화된 주소와 좌표를 반환합니다."""
     try:
         loc = await anyio.to_thread.run_sync(
-            validate_address_string,
+            validate_road_address_string,
             request.address
         )
 
@@ -177,7 +176,7 @@ async def validate_address(request: ValidateAddressRequest):
             return ValidateAddressResponse(
                 ok=True,
                 valid=False,
-                detail="Invalid or unrecognized address"
+                detail="도로명 주소를 입력해주세요."
             )
 
         return ValidateAddressResponse(
