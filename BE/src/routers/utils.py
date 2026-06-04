@@ -8,6 +8,7 @@ import anyio
 import requests
 
 from BE.AddressLatLong import KAKAO_HEADERS, extract_location_from_link, safe_float
+
 from BE.src.models.restaurants import Restaurant
 from BE.src.utils.duplicate_det import find_duplicate_candidates
 

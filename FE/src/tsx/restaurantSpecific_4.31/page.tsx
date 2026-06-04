@@ -1,6 +1,9 @@
 "use client";
+
+import { Link, useNavigate, useLocation, useParams } from "react-router-dom";
+
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+
 import style from "./page.module.css";
 import client from "../../api/client";
 import StarRating from "../../components/StarRating";
@@ -66,7 +69,7 @@ type RestaurantReview = {
   images: string[];
 };
 
-
+console.log("RestaurantSpecific mounted");
 
 function formatPrice(min?: number, max?: number) {
   const a = min ?? 0;
@@ -179,49 +182,85 @@ export default function RestaurantSpecific() {
   }, [restaurant?.name]);
 
   // 식당 상세 및 찜하기 상태 로드
-  useEffect(() => {
-    const id = Number(restaurantId);
-    if (!id) return;
+// 식당 상세 로드
+useEffect(() => {
+  const id = Number(restaurantId);
+  if (!id) return;
 
-    (async () => {
-      try {
-        setLoading(true);
-        // 상세 정보와 즐겨찾기 상태를 동시에 가져옴
-        const token = localStorage.getItem("access_token");
-
-        const detailPromise = client.get(`/restaurants/${id}`);
-
-        const favPromise = token
-          ? client.get(`/restaurants/${id}/favorite`)
-          : Promise.resolve({ data: { is_favorite: false } });
-
-        const [detailRes, favRes] = await Promise.all([
-          detailPromise,
-          favPromise
-        ]);
-        setRestaurant(detailRes.data.data || detailRes.data);
-        setIsZzim(favRes.data.is_favorite);
-        console.log(detailRes.data);
-      } catch (e: any) {
-        setErr(e?.response?.data?.detail ?? "식당 정보를 불러오지 못했습니다.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [restaurantId]);
-  
-
-  // 즐겨찾기 토글 함수
-  const toggleFavorite = async () => {
+  const fetchRestaurantDetail = async () => {
     try {
-      const res = await client.post(`/restaurants/${restaurantId}/favorite`);
-      setIsZzim(res.data.is_favorite);
-    } catch (e) {
-      console.error(e);
-      alert("즐겨찾기 상태를 변경할 수 없습니다.");
+      setLoading(true);
+      setErr("");
+
+      const detailRes = await client.get(`/restaurants/${id}`);
+      setRestaurant(detailRes.data.data || detailRes.data);
+    } catch (e: any) {
+      console.error("식당 상세 조회 실패:", e);
+      setErr(e?.response?.data?.detail ?? "식당 정보를 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  fetchRestaurantDetail();
+}, [restaurantId]);
+
+// 로그인 유저일 때만 찜 상태 로드
+useEffect(() => {
+  const id = Number(restaurantId);
+  if (!id) return;
+
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    setIsZzim(false);
+    return;
+  }
+
+  const fetchFavoriteState = async () => {
+    try {
+      const favRes = await client.get(`/restaurants/${id}/favorite`);
+      setIsZzim(Boolean(favRes.data.is_favorite));
+    } catch (e: any) {
+      console.warn("찜 상태 조회 실패:", e);
+
+      if (e?.response?.status === 401) {
+        setIsZzim(false);
+      }
+    }
+  };
+
+  fetchFavoriteState();
+}, [restaurantId]);
+  
+
+  // 즐겨찾기 토글 함수
+  // 즐겨찾기 토글 함수
+const toggleFavorite = async () => {
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    nav("/login");
+    return;
+  }
+
+  try {
+    const res = await client.post(`/restaurants/${restaurantId}/favorite`);
+    setIsZzim(Boolean(res.data.is_favorite));
+  } catch (e: any) {
+    console.error("찜 변경 실패:", e);
+
+    if (e?.response?.status === 401) {
+      alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+      localStorage.removeItem("access_token");
+      nav("/login");
+      return;
+    }
+
+    alert("즐겨찾기 상태를 변경할 수 없습니다.");
+  }
+};
 useEffect(() => {
   fetchReviews();
 }, [restaurantId]);
@@ -447,6 +486,34 @@ const canManageReview = (review: RestaurantReview) => {
   if (loading) return <div className={style.main}>불러오는 중...</div>;
   if (err || !restaurant) return <div className={style.main}>{err}</div>;
 
+  const region = restaurant.region;
+  const summaryText = restaurant.summary ?? "요약 없음";
+  const isShortSummary = summaryText.length <= 25;
+  const isCompactSummary = summaryText.length > 45 && summaryText.length <= 70;
+  const isDenseSummary = summaryText.length > 70;
+  const infoGridClassName = [
+    style.infoGrid,
+    isShortSummary ? style.infoGridShort : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const summarySectionClassName = [
+    style.summarySection,
+    isShortSummary ? style.summarySectionShort : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const summaryValueClassName = [
+    style.summaryValue,
+    isShortSummary ? style.summaryValueShort : "",
+    isCompactSummary ? style.summaryValueCompact : "",
+    isDenseSummary ? style.summaryValueDense : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+if (!region) return;
+
   return (
     <div className={style.main}>
       {/* ===== 상단 네비 ===== */}
@@ -510,21 +577,32 @@ const canManageReview = (review: RestaurantReview) => {
         </div>
 
         <div className={style.rightBox}>
-        <div className={style.infoGrid}>
-          <div className={style.infoGridSection}>
-            <div className={style.infoGridLabel}>한줄평</div>
-            <div className={style.infoGridValue}>{restaurant.summary}</div>
-          </div>
+          <div className={infoGridClassName}>
+            <div className={summarySectionClassName}>
+              <div className={style.summaryLabel}>
+                <MessageSquare size={11} strokeWidth={2.4} />
+                <span>한줄평</span>
+              </div>
+              <div className={summaryValueClassName}>
+                {summaryText}
+              </div>
+            </div>
 
-          <div className={style.infoGridSection}>
-            <div className={style.infoGridLabel}>주소</div>
+          <div className={`${style.infoGridSection} ${style.addressSection}`}>
+            <div className={style.infoGridLabel}>
+              <MapPin size={11} strokeWidth={2.4} />
+              <span>주소</span>
+            </div>
             <div className={style.infoGridValue}>
               {restaurant.address ?? "주소 정보 없음"}
             </div>
           </div>
 
           <div className={style.infoGridSection}>
-            <div className={style.infoGridLabel}>가격대</div>
+            <div className={style.infoGridLabel}>
+              <Tag size={11} strokeWidth={2.4} />
+              <span>가격대</span>
+            </div>
             <div className={style.infoGridValue}>
               {formatPrice(restaurant.price_min, restaurant.price_max)}
             </div>
@@ -580,20 +658,42 @@ const canManageReview = (review: RestaurantReview) => {
 
   <div className={style.tags}>
     {restaurant.region && (
-      <div className={style.tags_tag}>
-        {restaurant.region.name}
-      </div>
-    )}
+  <button
+    type="button"
+    className={style.tags_tag}
+    onClick={() => {
+  const region = restaurant.region;
+  if (!region) return;
 
-    {restaurant.tags.map((tag) => (
-      <div key={tag.id} className={style.tags_tag}>
+  nav(
+    `/restaurant/search?region_id=${region.id}&region_name=${encodeURIComponent(
+      region.name
+    )}`
+  );
+}}
+  >
+    {restaurant.region.name}
+  </button>
+)}
+
+   {restaurant.tags.map((tag) => (
+  <button
+    key={tag.id}
+    type="button"
+    className={style.tags_tag}
+    onClick={() =>
+      nav(
+        `/restaurant/search?tag_id=${tag.id}&tag_name=${encodeURIComponent(tag.name)}`
+      )
+    }
+  >
         {tag.parent_name && (
           <span className={style.parentTag}>
             {tag.parent_name}
           </span>
         )}
         <span>{tag.name}</span>
-      </div>
+      </button>
     ))}
 
     {!restaurant.region && restaurant.tags.length === 0 && (

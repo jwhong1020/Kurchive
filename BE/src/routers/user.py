@@ -60,6 +60,11 @@ class LoginResponse(BaseModel):
     status: str
     access_token: str
 
+class LogoutResponse(BaseModel):
+    success: bool
+    message: str
+    status: str
+
 
 # -------- API --------
 @router.post("/signup")
@@ -157,6 +162,10 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_async_db)):
         if not user or not pwd_context.verify(data.PW, user.password):
             raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 잘못되었습니다.")
 
+        # 탈퇴 처리된 계정인지 확인
+        if user.deleted_at is not None:
+            raise HTTPException(status_code=400, detail="탈퇴 처리된 계정입니다.")
+
         access_token = create_access_token(sub=str(user.id))
 
         return {
@@ -173,7 +182,19 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_async_db)):
 
     except HTTPException:
         raise
+
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
+@router.post("/logout", response_model=LogoutResponse)
+async def logout():
+    """
+    로그아웃 API
+    JWT 토큰 방식이므로, 실제 토큰 삭제는 프론트엔드에서 처리
+    """
+    return {
+        "success": True,
+        "message": "로그아웃 성공",
+        "status": "ok"
+    }

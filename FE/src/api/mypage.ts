@@ -50,6 +50,7 @@ export interface MyRecipeLog {
   id: number;
   title: string;
   base_serving: number;
+  thumbnail_url?: string | null;
   created_at: string | null;
 }
 

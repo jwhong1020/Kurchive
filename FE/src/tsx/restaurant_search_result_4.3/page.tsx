@@ -16,6 +16,9 @@ type Restaurant = {
   thumbnail_url?: string | null;
 };
 
+const formatPriceValue = (price?: number | null) =>
+  price == null ? "-" : `${price}\uc6d0`;
+
 export default function RestaurantSearchResultsPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -30,8 +33,8 @@ export default function RestaurantSearchResultsPage() {
   const tag_ids = (params.get("tag_ids") || "").trim();
   const price_min = (params.get("price_min") || "").trim();
   const price_max = (params.get("price_max") || "").trim();
-  const min_rating = (params.get("min_rating") || "").trim();
-  const max_rating = (params.get("max_rating") || "").trim();
+ const rating_min = (params.get("rating_min") || "").trim();
+const rating_max = (params.get("rating_max") || "").trim();
 
   const [items, setItems] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,8 +60,8 @@ export default function RestaurantSearchResultsPage() {
             ...(tag_ids ? { tag_ids } : {}),
             ...(price_min ? { price_min } : {}),
             ...(price_max ? { price_max } : {}),
-            ...(min_rating ? { min_rating } : {}),
-            ...(max_rating ? { max_rating } : {}),
+            ...(rating_min ? { rating_min } : {}),
+            ...(rating_max ? { rating_max } : {}),
           },
         });
 
@@ -80,7 +83,7 @@ export default function RestaurantSearchResultsPage() {
     };
 
     fetchResults();
-  }, [q, region_id, tag_ids, price_min, price_max, min_rating, max_rating]);
+  }, [q, region_id, tag_ids, price_min, price_max, rating_min, rating_max]);
 
   return (
     <main className={styles.container}>
@@ -115,16 +118,25 @@ export default function RestaurantSearchResultsPage() {
               <div className={styles.sub}>{r.address || "주소 정보 없음"}</div>
 
               <div className={styles.ratingRow}>
-                ⭐ {r.rating ?? 0}
-                {" · "}
-                {`${r.price_min}원` ?? "-"} ~ {`${r.price_max}원` ?? "-"}
+                <span className={styles.ratingText}>⭐ {r.rating ?? 0}</span>
+                <span className={styles.priceText}>
+                  {formatPriceValue(r.price_min)} ~ {formatPriceValue(r.price_max)}
+                </span>
               </div>
 
               {r.summary ? <div className={styles.sub}>{r.summary}</div> : null}
             </div>
 
             <div className={styles.cardRight}>
-              <span className={styles.cardRightText}>음식 사진</span>
+              {r.thumbnail_url ? (
+                <img
+                  src={r.thumbnail_url}
+                  alt={r.name}
+                  className={styles.cardImage}
+                />
+              ) : (
+                <span className={styles.cardRightText}>음식 사진</span>
+              )}
             </div>
           </div>
         ))}

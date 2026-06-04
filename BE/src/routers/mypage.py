@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from passlib.context import CryptContext
 
 from BE.src.dependencies import get_current_user_from_token
@@ -14,8 +14,6 @@ from BE.src.models.recipes import Recipe
 from BE.src.models.restaurants import Restaurant
 
 from BE.src.models.favorites import Favorite, RecipeFavorite
-from BE.src.models.restaurants import RestaurantImage
-
 from BE.src.dto.mypage_dto import MessageResponse, MyRecipeDTO, MyRestaurantDTO, UserResponseDTO, FavoriteRecipeDTO, FavoriteRestaurantDTO, NicknameUpdateRequest, PasswordUpdateRequest
 
 
@@ -71,14 +69,9 @@ async def get_my_favorite_restaurants(
             Restaurant.name,
             Restaurant.address,
             Restaurant.rating,
-            RestaurantImage.image_url
+            Restaurant.thumbnail_url
         )
         .join(Favorite, Favorite.restaurant_id == Restaurant.id)
-        .outerjoin(
-            RestaurantImage,
-            (RestaurantImage.restaurant_id == Restaurant.id)
-            & (RestaurantImage.is_cover == True)
-        )
         .where(Favorite.user_id == current_user.id)
         .order_by(Favorite.created_at.desc())
     )
@@ -91,7 +84,7 @@ async def get_my_favorite_restaurants(
             name=r.name,
             address=r.address,
             rating=r.rating,
-            thumbnail_url=r.image_url
+            thumbnail_url=r.thumbnail_url
         )
         for r in result
     ]
@@ -128,9 +121,21 @@ async def delete_user_account(
     current_user: User = Depends(get_current_user_from_token)
 ):
     user_to_delete = await db.get(User, current_user.id)
+
     if user_to_delete:
-        await db.delete(user_to_delete)
+
+        user_to_delete.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None) # 탈퇴 시간 기록
+        user_to_delete.password = ""                  # 비밀번호 초기화
+        user_to_delete.name = "탈퇴 회원"
+
+        # unique 제약조건 충돌을 방지하기 위한 유저 ID(PK)
+        user_to_delete.userid = f"{user_to_delete.userid}_deleted_{user_to_delete.id}"
+        user_to_delete.nickname = f"탈퇴한 유저_{user_to_delete.id}"
+
+        db.add(user_to_delete)
         await db.commit()
+        await db.refresh(user_to_delete)
+
     return {"message": "회원 탈퇴가 성공적으로 처리되었습니다."}
 
 # 내 활동 기록
@@ -147,12 +152,7 @@ async def get_my_uploaded_restaurants(
             Restaurant.address,
             Restaurant.rating,
             Restaurant.created_at,
-            RestaurantImage.image_url
-        )
-        .outerjoin(
-            RestaurantImage,
-            (RestaurantImage.restaurant_id == Restaurant.id)
-            & (RestaurantImage.is_cover == True)
+            Restaurant.thumbnail_url
         )
         .where(Restaurant.uploaded_by == current_user.id)
         .order_by(Restaurant.created_at.desc())
@@ -167,7 +167,7 @@ async def get_my_uploaded_restaurants(
         address=r.address,
         rating=r.rating,
         created_at=r.created_at,
-        thumbnail_url=r.image_url
+        thumbnail_url=r.thumbnail_url
     )
         for r in result
     ]
@@ -183,6 +183,7 @@ async def get_my_uploaded_recipes(
             Recipe.id,
             Recipe.title,
             Recipe.base_serving,
+            Recipe.thumbnail_url,
             Recipe.created_at
         )
         .where(Recipe.uploader_id == current_user.id)
@@ -196,6 +197,7 @@ async def get_my_uploaded_recipes(
             id=r.id,
             title=r.title,
             base_serving=r.base_serving,
+            thumbnail_url=r.thumbnail_url,
             created_at=r.created_at
         )
         for r in result
